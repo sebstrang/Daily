@@ -682,12 +682,20 @@ const quotes = [
 // Sound effect
 const flipSound = new Audio("https://www.soundjay.com/button/beep-07.wav");
 
-// Get the current day in AEST
-function getDayInAEST() {
+// Get the current date and time in AEST
+function getAESTDate() {
   const nowUTC = new Date();
-  const offsetAEST = 10 * 60; // AEST is UTC+10
-  const nowAEST = new Date(nowUTC.getTime() + offsetAEST * 60000);
-  return nowAEST.getDate() + nowAEST.getMonth() * 31 + nowAEST.getFullYear() * 366; // Unique key for the day
+  const aestOffset = 10 * 60; // AEST is UTC+10
+  const aestTime = new Date(nowUTC.getTime() + aestOffset * 60000);
+  return aestTime;
+}
+
+// Get the day of the year in AEST
+function getDayInAEST() {
+  const aestDate = getAESTDate();
+  const startOfYear = new Date(aestDate.getFullYear(), 0, 0);
+  const diff = aestDate - startOfYear;
+  return Math.floor(diff / (1000 * 60 * 60 * 24)); // Day of the year
 }
 
 // Get the quote of the day
@@ -793,13 +801,14 @@ async function displayQuote() {
   await splitFlapRevealCharacters(`~ ${quote.author}`, authorLine);
 }
 
-// Refresh at midnight
+// Refresh at midnight in AEST
 setInterval(() => {
-  const nowAEST = new Date(new Date().getTime() + 10 * 60 * 60000); // AEST time
-  if (nowAEST.getHours() === 0 && nowAEST.getMinutes() === 0) {
+  const aestDate = getAESTDate();
+  if (aestDate.getHours() === 0 && aestDate.getMinutes() === 0) {
     displayQuote();
   }
 }, 60000); // Check every minute
 
 // Initial display
 displayQuote();
+
