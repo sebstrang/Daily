@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Quote</title>
+  <style>
+body {
+  font-family: 'Courier New', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background: #fff;
+  color: #000;
+}
+
+#quote-display {
+  display: flex;
+  flex-direction: column; /* Stack lines vertically */
+  align-items: center;
+  margin: 20px;
+  padding: 20px;
+  background: #f9f9f9;
+  border: 3px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.word-container {
+  display: flex; /* Group characters of a word together */
+  flex-wrap: nowrap; /* Prevent wrapping within a word */
+  margin-right: 5px; /* Add spacing between words */
+}
+
+.quote-line, .author-line {
+  display: flex;
+  flex-wrap: wrap; /* Allow words to wrap to the next line */
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.split-flap {
+  display: inline-block;
+  font-size: 2rem;
+  margin: 1px;
+  width: 2ch;
+  height: 2.5rem;
+  overflow: hidden;
+  background: #ddd;
+  color: #000;
+  text-align: center;
+  line-height: 2.5rem;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  box-shadow: inset 0 0 5px #ccc;
+  transition: transform 0.3s ease-in-out, background 0.3s, color 0.3s;
+}
+
+.space-flap {
+  background: #ddd; /* Same as other flaps */
+  border: 1px solid #bbb; /* Ensure consistent borders */
+}
+
+.split-flap:hover {
+  background: #bbb;
+  color: #222;
+}
+  </style>
+</head>
+<body>
+  <div id="quote-display"></div>
+  <script src="DailyWords.js"></script>
+</body>
+</html>
