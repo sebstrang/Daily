@@ -698,11 +698,25 @@ function getDayInAEST() {
   return Math.floor(diff / (1000 * 60 * 60 * 24)); // Day of the year
 }
 
-// Get the quote of the day
+let manualChangeEnabled = true; // Set to true to manually change the quote
+
+
+// A variable to manually set the quote index
+let manualQuoteIndex = 0;
+
 function getQuoteOfTheDay() {
+  if (manualChangeEnabled) {
+    console.log("Manual change enabled. Showing quote index:", manualQuoteIndex);
+    return quotes[manualQuoteIndex % quotes.length];
+  }
+  
   const index = getDayInAEST() % quotes.length;
+  console.log("Automatic quote selection. Showing quote index:", index);
   return quotes[index];
 }
+
+manualQuoteIndex = 270; // Set this to the index of the desired quote
+
 
 // Generate a random letter
 function getRandomLetter() {
@@ -801,14 +815,23 @@ async function displayQuote() {
   await splitFlapRevealCharacters(`~ ${quote.author}`, authorLine);
 }
 
-// Refresh at midnight in AEST
-setInterval(() => {
+// Schedule quote refresh at midnight in AEST
+function scheduleMidnightRefresh() {
   const aestDate = getAESTDate();
-  if (aestDate.getHours() === 0 && aestDate.getMinutes() === 0) {
-    displayQuote();
-  }
-}, 60000); // Check every minute
+  const nextMidnight = new Date(
+    aestDate.getFullYear(),
+    aestDate.getMonth(),
+    aestDate.getDate() + 1, // Move to the next day
+    0, 0, 0, 0
+  );
+  const timeUntilMidnight = nextMidnight - aestDate;
+
+  setTimeout(() => {
+    displayQuote(); // Refresh the quote
+    scheduleMidnightRefresh(); // Schedule the next refresh
+  }, timeUntilMidnight);
+}
 
 // Initial display
 displayQuote();
-
+scheduleMidnightRefresh();
