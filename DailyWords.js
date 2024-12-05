@@ -698,7 +698,7 @@ function getDayInAEST() {
   return Math.floor(diff / (1000 * 60 * 60 * 24)); // Day of the year
 }
 
-let manualChangeEnabled = true; // Set to true to manually change the quote
+let manualChangeEnabled = false; // Set to true to manually change the quote
 
 
 // A variable to manually set the quote index
