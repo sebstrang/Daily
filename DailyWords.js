@@ -676,7 +676,10 @@ const quotes = [
     text: "Love looks not with the eyes, but with the mind, And therefore is winged Cupid painted blind.", 
     author: "William Shakespeare" 
   },
-
+  {
+    text: "A trio of mysteries, fleeting, yet bright, Moments to follow the pulse of the night. A spark of fire, a soulful clue, From Mama herself, crafted just for you. Bring what you need, perhaps something light, And maybe a hat, just for the sight. Early next year, we’ll share three nights, With steps that lead to hidden delights.",
+    author: "SS" 
+  }
 ];
 
 // Sound effect
