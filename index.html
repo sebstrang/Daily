@@ -2,113 +2,484 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Quote</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Daily Words</title>
+
   <style>
+    :root {
+      /* The board palette — classic Solari departure board */
+      --bg:        #0a0a0c;
+      --bg-2:      #141417;
+      --flap:      #1c1c20;
+      --flap-top:  #232328;
+      --flap-edge: #060607;
+      --ink:       #f2efe6;   /* off-white letter */
+      --ink-dim:   #8c8a82;   /* author / quieter */
+      --glow:      rgba(255, 196, 120, 0.10);
+      --seam:      rgba(0, 0, 0, 0.55);
+
+      /* Set by JS to fit the quote to the screen */
+      --fs: 28px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(120% 120% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+      color: var(--ink);
+      font-family: "Helvetica Neue", Arial, "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
     body {
-      font-family: 'Courier New', monospace;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      margin: 0;
-      background: #fff;
-      color: #000;
+      min-height: 100dvh;
+      padding: max(20px, 4vh) 16px;
+      cursor: pointer;            /* whole page is tap-to-copy */
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
+    /* Auto-margin spacers: perfectly centred when the quote fits, but the
+       margins collapse to 0 when a long poem overflows — so it scrolls from
+       the top instead of clipping. */
+    body::before { content: ""; margin-top: auto; }
+    body::after  { content: ""; margin-bottom: auto; }
 
-    #quote-display {
+    /* The board ------------------------------------------------------------ */
+    #board {
       display: flex;
-      flex-direction: column; /* Stack lines vertically */
+      flex-direction: column;
       align-items: center;
-      margin: 20px;
-      padding: 20px;
-      background: #f9f9f9;
-      border: 3px solid #ddd;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      width: 80%; /* Adjust width for larger screens */
-      max-width: 800px; /* Limit width on large screens */
-      min-width: 300px; /* Minimum width for very small screens */
+      gap: calc(var(--fs) * 0.34);
+      width: 100%;
+      max-width: 1100px;
+      perspective: 700px;
     }
 
-    .word-container {
-      display: flex; /* Group characters of a word together */
-      flex-wrap: nowrap; /* Prevent wrapping within a word */
-      margin-right: 5px; /* Add spacing between words */
-    }
-
-    .quote-line, .author-line {
+    .line {
       display: flex;
-      flex-wrap: wrap; /* Allow words to wrap to the next line */
+      flex-wrap: wrap;
       justify-content: center;
-      margin-top: 10px;
+      gap: 0;
+    }
+    .line.blank { height: calc(var(--fs) * 0.55); }   /* stanza break */
+
+    .word {
+      display: inline-flex;
+      flex-wrap: nowrap;
+      margin: 0 calc(var(--fs) * 0.16);   /* the visual "space" between words */
     }
 
-    .split-flap {
+    /* A single flap -------------------------------------------------------- */
+    /* Structure:  .flap > .face (full letter)  +  .leaf (top half that folds) */
+    .flap {
+      position: relative;
       display: inline-block;
-      font-size: 2rem;
-      margin: 1px;
-      width: 2.5ch; /* Slightly larger for better readability */
-      height: 3rem;
+      width: calc(var(--fs) * 0.86);
+      height: calc(var(--fs) * 1.28);
+      margin: calc(var(--fs) * 0.045) calc(var(--fs) * 0.028);
+      font-size: var(--fs);
+      font-weight: 600;
+      border-radius: calc(var(--fs) * 0.1);
+      background: var(--flap-edge);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 calc(var(--fs) * 0.04) calc(var(--fs) * 0.08) rgba(0,0,0,0.55);
       overflow: hidden;
-      background: #ddd;
-      color: #000;
+      perspective: calc(var(--fs) * 8);
+    }
+
+    /* the letter that ends up showing */
+    .flap .face {
+      position: absolute;
+      inset: 0;
+      line-height: calc(var(--fs) * 1.28);
       text-align: center;
-      line-height: 3rem;
-      border: 1px solid #bbb;
-      border-radius: 3px;
-      box-shadow: inset 0 0 5px #ccc;
-      transition: transform 0.3s ease-in-out, background 0.3s, color 0.3s;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--flap-top) 0%, var(--flap) 49.5%, var(--flap-edge) 50%, var(--flap) 50.5%, var(--flap) 100%);
     }
 
-    .space-flap {
-      background: #ddd; /* Same as other flaps */
-      border: 1px solid #bbb; /* Ensure consistent borders */
+    /* the hinged top leaf — shows the OLD letter, folds down to reveal new */
+    .flap .leaf {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 50%;
+      overflow: hidden;
+      line-height: calc(var(--fs) * 1.28);
+      text-align: center;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--flap-top) 0%, var(--flap) 100%);
+      transform-origin: 50% 100%;
+      transform: rotateX(-90deg);   /* hidden (edge-on) at rest */
+      backface-visibility: hidden;
+      box-shadow: 0 calc(var(--fs) * 0.03) calc(var(--fs) * 0.05) rgba(0,0,0,0.6);
+      z-index: 2;
     }
 
-    .split-flap:hover {
-      background: #bbb;
-      color: #222;
+    /* the centre seam of the split-flap */
+    .flap::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 50%;
+      height: 1px;
+      transform: translateY(-0.5px);
+      background: var(--seam);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+      pointer-events: none;
+      z-index: 3;
     }
 
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-      #quote-display {
-        padding: 15px; /* Reduce padding for smaller screens */
-      }
-
-      .split-flap {
-        font-size: 1.5rem; /* Adjust font size */
-        width: 1.5ch;
-        height: 2rem;
-        line-height: 2rem;
-      }
-
-      .quote-line, .author-line {
-        margin-top: 5px; /* Reduce spacing for better fit */
-      }
+    /* blank flap = a space; subtler, no letter */
+    .flap.space .face {
+      background: linear-gradient(180deg, #161619 0%, #131316 49.5%, var(--flap-edge) 50%, #131316 50.5%, #131316 100%);
     }
 
-    /* Larger screens */
-    @media (min-width: 1200px) {
-      #quote-display {
-        width: 70%; /* Use more screen real estate */
-        max-width: 1000px; /* Limit maximum width */
-        padding: 30px; /* Add more padding for larger screens */
-      }
+    .flap.settled .face { text-shadow: 0 0 calc(var(--fs) * 0.5) var(--glow); }
 
-      .split-flap {
-        font-size: 2.5rem; /* Slightly larger text */
-        width: 3ch;
-        height: 3.5rem;
-        line-height: 3.5rem;
-      }
+    /* Author --------------------------------------------------------------- */
+    #board .author { margin-top: calc(var(--fs) * 0.5); }
+    #board .author .flap {
+      --fs: var(--author-fs);
+      width: calc(var(--author-fs) * 0.82);
+      height: calc(var(--author-fs) * 1.26);
+      font-size: var(--author-fs);
+      font-weight: 500;
+    }
+    #board .author .flap .face,
+    #board .author .flap .leaf {
+      color: var(--ink-dim);
+      line-height: calc(var(--author-fs) * 1.26);
+    }
+    #board .author .flap.settled .face { text-shadow: none; }
+
+    /* Copy confirmation ---------------------------------------------------- */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(28px, 5vh);
+      transform: translateX(-50%) translateY(14px);
+      background: rgba(20,20,24,0.92);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--ink);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      backdrop-filter: blur(6px);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flap.tick { animation: none; }
     }
   </style>
 </head>
+
 <body>
-  <div id="quote-display"></div>
-  <script src="DailyWords.js"></script>
+  <div id="board" aria-live="polite"></div>
+  <div id="toast">Copied to clipboard</div>
+
+  <script src="quotes.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var board = document.getElementById("board");
+    var toast = document.getElementById("toast");
+
+    var current = { text: "", author: "" };   // original-cased, for copying
+    var refreshTimer = null;
+
+    /* ---- AEST day selection -------------------------------------------- */
+    // Australia/Brisbane is UTC+10 year-round (no daylight saving) = true AEST.
+    function aestParts() {
+      var fmt = new Intl.DateTimeFormat("en-AU", {
+        timeZone: "Australia/Brisbane",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+      });
+      var p = {};
+      fmt.formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      return {
+        year: +p.year, month: +p.month, day: +p.day,
+        hour: +p.hour === 24 ? 0 : +p.hour, minute: +p.minute, second: +p.second
+      };
+    }
+
+    // A stable day number (days since epoch) for the current AEST calendar day.
+    function aestDayNumber() {
+      var p = aestParts();
+      return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 86400000);
+    }
+
+    function quoteForToday() {
+      if (!window.quotes || !window.quotes.length) {
+        return { text: "No quotes found.", author: "" };
+      }
+      // Optional: URL hash like #42 forces a specific entry (for previewing
+      // your collection). Invisible to normal visitors who never type it.
+      var forced = parseInt((location.hash || "").replace("#", ""), 10);
+      var idx = isNaN(forced)
+        ? ((aestDayNumber() % quotes.length) + quotes.length) % quotes.length
+        : ((forced % quotes.length) + quotes.length) % quotes.length;
+      return quotes[idx];
+    }
+
+    // ms until the next AEST midnight, so we can auto-roll over if left open.
+    function msUntilAestMidnight() {
+      var p = aestParts();
+      var secsIntoDay = p.hour * 3600 + p.minute * 60 + p.second;
+      return (86400 - secsIntoDay) * 1000 + 1500; // +small buffer
+    }
+
+    /* ---- Sizing: fit the quote to the screen --------------------------- */
+    // A flap is ~0.92em wide (incl. margins) and a line ~1.62em tall.
+    var FLAP_W = 0.92, LINE_H = 1.62;
+
+    function computeFontSize(text) {
+      var lines = text.split("\n");
+      var hasBreaks = text.indexOf("\n") !== -1;
+
+      var longestLine = 0, longestWord = 0, flapCount = 0, lineUnits = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var ln = lines[i];
+        if (ln.length > longestLine) longestLine = ln.length;
+        if (ln.trim() === "") { lineUnits += 0.6; continue; }
+        lineUnits += 1;
+        var words = ln.split(" ");
+        for (var w = 0; w < words.length; w++) {
+          flapCount += words[w].length;
+          if (words[w].length > longestWord) longestWord = words[w].length;
+        }
+      }
+      // room for the author line + a little breathing space
+      lineUnits += 2.2;
+
+      var vw = Math.min(window.innerWidth, 1100) - 28;
+      var vh = (window.innerHeight || 700) - 48;
+
+      // Area fit: pack all flaps into the available box (allows wrapping).
+      var areaFs = Math.sqrt((vw * vh * 0.55) / (Math.max(flapCount, 1) * FLAP_W * LINE_H));
+      // No single word may overflow a row.
+      var wordFs = vw / (Math.max(longestWord, 1) * FLAP_W);
+
+      var fs;
+      if (hasBreaks) {
+        // Poem: try to keep each written line on its own row, and fit height
+        // to the number of lines.
+        var lineFs   = vw / (Math.max(longestLine, 1) * FLAP_W);
+        var heightFs = vh / (Math.max(lineUnits, 1) * LINE_H);
+        fs = Math.min(lineFs, heightFs, areaFs, 46);
+      } else {
+        // Prose: wrap freely, size by area.
+        fs = Math.min(areaFs, wordFs, 46);
+      }
+      return Math.max(11, fs);
+    }
+
+    /* ---- Build the blank board ----------------------------------------- */
+    // Returns an array of flap descriptors {el, target} (spaces excluded).
+    function buildBoard(text, author) {
+      board.innerHTML = "";
+      var fs = computeFontSize(text);
+      document.documentElement.style.setProperty("--fs", fs + "px");
+      document.documentElement.style.setProperty("--author-fs", Math.max(11, fs * 0.6) + "px");
+
+      var flaps = [];
+
+      function renderLineInto(parent, str) {
+        var words = str.split(" ");
+        for (var w = 0; w < words.length; w++) {
+          var word = words[w];
+          var wordEl = document.createElement("span");
+          wordEl.className = "word";
+          for (var c = 0; c < word.length; c++) {
+            var up = word[c].toUpperCase();
+            var flap = document.createElement("span");
+            flap.className = "flap";
+            var face = document.createElement("span");
+            face.className = "face";
+            var leaf = document.createElement("span");
+            leaf.className = "leaf";
+            flap.appendChild(face);
+            flap.appendChild(leaf);
+            wordEl.appendChild(flap);
+            flaps.push({ flap: flap, face: face, leaf: leaf, target: up, cur: "" });
+          }
+          parent.appendChild(wordEl);
+        }
+      }
+
+      // Quote lines (preserve \n; empty line = stanza gap)
+      var lines = text.split("\n");
+      for (var i = 0; i < lines.length; i++) {
+        var lineEl = document.createElement("div");
+        if (lines[i].trim() === "") {
+          lineEl.className = "line blank";
+        } else {
+          lineEl.className = "line";
+          renderLineInto(lineEl, lines[i]);
+        }
+        board.appendChild(lineEl);
+      }
+
+      // Author line
+      if (author) {
+        var authorEl = document.createElement("div");
+        authorEl.className = "line author";
+        renderLineInto(authorEl, "— " + author);
+        board.appendChild(authorEl);
+      }
+
+      return flaps;
+    }
+
+    /* ---- The reveal: every flap rolls through letters and settles ------- */
+    var ROLLA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    function reveal(flaps) {
+      var reduce = window.matchMedia &&
+                   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      var STEP_MS  = 115;   // time between successive letters (the cadence)
+      var FOLD_MS  = 105;   // how long one leaf takes to fold over
+      var SWEEP_MS = 1500;  // left-to-right cascade window across the board
+      var stagger  = Math.min(48, SWEEP_MS / Math.max(flaps.length, 1));
+
+      // One physical flip: the top leaf shows the OLD char and folds down,
+      // revealing the NEW char that's already sitting on the face behind it.
+      function flip(f, ch) {
+        f.leaf.textContent = f.cur;
+        f.face.textContent = ch;
+        if (f.leaf.animate) {
+          f.leaf.animate(
+            [{ transform: "rotateX(0deg)" }, { transform: "rotateX(-92deg)" }],
+            { duration: FOLD_MS, easing: "cubic-bezier(.36,.0,.2,1)", fill: "forwards" }
+          );
+        } else {
+          f.leaf.style.transform = "rotateX(-92deg)";
+        }
+        f.cur = ch;
+      }
+
+      flaps.forEach(function (f, i) {
+        if (reduce) { f.face.textContent = f.target; f.flap.classList.add("settled"); return; }
+
+        // Build the sequence of letters this flap rolls through before it
+        // lands on its real character.
+        var flips  = 9 + Math.floor(Math.random() * 8);   // 9–16 visible turns
+        var offset = Math.floor(Math.random() * 26);
+        var seq = [];
+        for (var k = 0; k < flips; k++) seq.push(ROLLA[(offset + k) % 26]);
+        seq.push(f.target);
+
+        setTimeout(function () {
+          var idx = 0;
+          (function next() {
+            flip(f, seq[idx]);
+            if (idx >= seq.length - 1) {
+              setTimeout(function () { f.flap.classList.add("settled"); }, FOLD_MS);
+              return;
+            }
+            idx++;
+            setTimeout(next, STEP_MS);
+          })();
+        }, i * stagger);
+      });
+    }
+
+    /* ---- Show today's words -------------------------------------------- */
+    function show() {
+      var q = quoteForToday();
+      current.text = q.text;
+      current.author = q.author || "";
+      document.title = "Daily Words";
+      var flaps = buildBoard(q.text, q.author || "");
+      reveal(flaps);
+
+      // schedule the AEST-midnight rollover
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(show, msUntilAestMidnight());
+    }
+
+    /* ---- Tap to copy ---------------------------------------------------- */
+    function copyText() {
+      var text = current.author
+        ? current.text + "\n\n— " + current.author
+        : current.text;
+
+      function done() { flash(); }
+      function fallback() {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          flash();
+        } catch (e) { /* give up quietly */ }
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else {
+        fallback();
+      }
+    }
+
+    var toastTimer = null;
+    function flash() {
+      toast.classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 1400);
+    }
+
+    // Tap / click anywhere copies. (Tap fires click on mobile too.)
+    document.body.addEventListener("click", copyText);
+
+    /* ---- Re-fit on rotate / resize ------------------------------------- */
+    var resizeTimer = null;
+    window.addEventListener("resize", function () {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        // Re-fit without the full roll animation (just settle in place).
+        var q = { text: current.text, author: current.author };
+        var flaps = buildBoard(q.text, q.author);
+        flaps.forEach(function (f) {
+          f.face.textContent = f.target;
+          f.flap.classList.add("settled");
+        });
+      }, 180);
+    });
+
+    // Roll over if the device wakes from sleep on a new AEST day.
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && current.text !== quoteForToday().text) show();
+    });
+
+    // Re-render when the preview hash changes.
+    window.addEventListener("hashchange", show);
+
+    show();
+  })();
+  </script>
 </body>
 </html>
