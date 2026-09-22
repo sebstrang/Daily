@@ -412,6 +412,7 @@
       var q = quoteForToday();
       current.text = q.text;
       current.author = q.author || "";
+      showingFavourite = false;
       document.title = "Daily Words";
       var flaps = buildBoard(q.text, q.author || "");
       reveal(flaps);
@@ -420,6 +421,39 @@
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(show, msUntilAestMidnight());
     }
+
+    /* ---- The favourite, on demand --------------------------------------- */
+    // Press I (or triple-tap on a phone) and the favourite poem rolls up in
+    // place of the day's words. It's whichever entry's author line matches
+    // this, so re-ordering the collection doesn't break it.
+    var FAVOURITE = /invictus/i;
+    var showingFavourite = false;
+
+    function favouriteQuote() {
+      if (!window.quotes) return null;
+      for (var i = 0; i < quotes.length; i++) {
+        if (FAVOURITE.test(quotes[i].author || "")) return quotes[i];
+      }
+      return null;
+    }
+
+    function showFavourite() {
+      var q = favouriteQuote();
+      if (!q) return;                       // not in the collection — do nothing
+      current.text = q.text;
+      current.author = q.author || "";
+      showingFavourite = true;
+      reveal(buildBoard(current.text, current.author));
+    }
+
+    // I brings it up (again, if you want to watch it land twice); Escape goes
+    // back to the day's words. The day still rolls over on its own at midnight.
+    document.addEventListener("keydown", function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var k = (e.key || "").toLowerCase();
+      if (k === "i") { e.preventDefault(); showFavourite(); }
+      else if (k === "escape" && showingFavourite) { show(); }
+    });
 
     /* ---- Tap to copy ---------------------------------------------------- */
     function copyText() {
@@ -456,7 +490,20 @@
     }
 
     // Tap / click anywhere copies. (Tap fires click on mobile too.)
-    document.body.addEventListener("click", copyText);
+    // Three quick taps is the phone's version of pressing I: it swaps between
+    // the day's words and the favourite. Only the first tap of a burst copies,
+    // so a triple-tap doesn't fire three copies and three toasts.
+    var taps = 0, tapTimer = null;
+    document.body.addEventListener("click", function () {
+      taps++;
+      if (taps === 1) copyText();
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(function () { taps = 0; }, 600);
+      if (taps >= 3) {
+        taps = 0;
+        if (showingFavourite) show(); else showFavourite();
+      }
+    });
 
     /* ---- Re-fit on rotate / resize ------------------------------------- */
     var resizeTimer = null;
@@ -473,8 +520,10 @@
       }, 180);
     });
 
-    // Roll over if the device wakes from sleep on a new AEST day.
+    // Roll over if the device wakes from sleep on a new AEST day — but leave
+    // the favourite up if that's what you were reading.
     document.addEventListener("visibilitychange", function () {
+      if (showingFavourite) return;
       if (!document.hidden && current.text !== quoteForToday().text) show();
     });
 

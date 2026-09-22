@@ -11,6 +11,9 @@
      but tap-to-copy copies exactly what you type here (original casing).
    - Keep the list as long as you like — more entries = longer before any
      quote repeats.
+   - Pressing I on the page (or triple-tapping on a phone) brings up the
+     favourite: the entry whose author line mentions Invictus. Rename that
+     line and the shortcut loses it — the pattern lives in index.html.
    ========================================================================== */
 
 const quotes = [
